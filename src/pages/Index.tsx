@@ -166,11 +166,13 @@ const Index = () => {
       window.print();
       setPrintMode(null);
     }, 80);
+    setStatus({ action: "הדפס שאלה", ok: true, output: "הדפסה", message: "נפתח חלון הדפסה לשאלה בלבד." });
   };
 
   const handlePrintWorksheet = () => {
     if (!worksheet.length) {
       toast.error("דף העבודה ריק. הוסיפו שאלות תחילה.");
+      setStatus({ action: "הדפס דף עבודה", ok: false, output: "—", message: "דף העבודה ריק." });
       return;
     }
     setPrintMode("worksheet");
@@ -178,12 +180,14 @@ const Index = () => {
       window.print();
       setPrintMode(null);
     }, 80);
+    setStatus({ action: "הדפס דף עבודה", ok: true, output: "הדפסה", message: "נפתח חלון הדפסה לדף העבודה בלבד." });
   };
 
   const addToWorksheet = () => {
     if (!question) return;
     setWorksheet((w) => [...w, question]);
     toast.success("השאלה נוספה לדף העבודה.");
+    setStatus({ action: "הוסף לדף עבודה", ok: true, output: "—", message: "השאלה נוספה לדף העבודה." });
   };
 
   const removeFromWorksheet = (id: string) =>
