@@ -57,21 +57,7 @@ const Index = () => {
 
   // initial example question (matches the inspiration: red = 1/10 of 600 -> 60)
   useEffect(() => {
-    const example: GenSettings = {
-      ...defaultSettings(),
-      seed: "demo-shai-wheel",
-      context: "monthlyGame",
-      contextCustom: "",
-      representation: "wheel",
-      trials: 600,
-      numCategories: 4,
-      categoryNames: ["אדום", "כחול", "ירוק", "צהוב"],
-      questionType: "expectedCount",
-      level: "basic",
-      targetIndex: 0,
-    };
     setQuestion(buildExample());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
