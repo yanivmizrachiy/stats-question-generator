@@ -13,6 +13,9 @@ import {
   ArrowUp,
   ArrowDown,
   ClipboardCopy,
+  Image,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
