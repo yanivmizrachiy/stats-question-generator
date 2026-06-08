@@ -318,7 +318,7 @@ const Index = () => {
 };
 
 function buildExample(): GeneratedQuestion {
-  return generateQuestion({
+  const s: GenSettings = {
     ...defaultSettings(),
     seed: "demo-shai-wheel",
     representation: "wheel",
@@ -329,7 +329,47 @@ function buildExample(): GeneratedQuestion {
     level: "basic",
     targetIndex: 0,
     context: "monthlyGame",
-  });
+  };
+  const categories = [
+    { name: "אדום", color: "#e63946", count: 1 },
+    { name: "כחול", color: "#1d70b8", count: 3 },
+    { name: "ירוק", color: "#2a9d4a", count: 2 },
+    { name: "צהוב", color: "#f4c430", count: 4 },
+  ];
+  const total = 10;
+  const options = [
+    { label: "א", text: "30 פעמים בערך", correct: false },
+    { label: "ב", text: "40 פעמים בערך", correct: false },
+    { label: "ג", text: "50 פעמים בערך", correct: false },
+    { label: "ד", text: "60 פעמים בערך", correct: true },
+  ];
+  return {
+    id: "demo-shai-wheel",
+    seed: "demo-shai-wheel",
+    settings: s,
+    categories,
+    totalUnits: total,
+    targetIndex: 0,
+    contextSentence: "גלגל המשחק שלפניכם הוא משחק החודש של שי.",
+    questionText:
+      "גלגל המשחק שלפניכם הוא משחק החודש של שי. מתוך 600 סיבובים, כמה פעמים בערך נצפה שהמחוג ייעצר בגזרה האדומה?",
+    options,
+    correctAnswerText: "60 פעמים בערך",
+    solutionSteps: [
+      "הסתברות לגזרה האדומה: 1/10.",
+      "מספר צפוי = הסתברות × מספר ניסיונות = 1/10 × 600.",
+      "מספר צפוי ≈ 60.",
+    ],
+    pedagogicalNote:
+      'המילה "בערך" חשובה: ב-600 סיבובים התוצאה תהיה קרובה ל-60, אך לא בהכרח מדויקת.',
+    difficulty: "בסיסי · מסיחים מתוחכמים",
+    skills: [
+      "הסתברות כיחס מתוך שלם",
+      "מספר צפוי = הסתברות × ניסיונות",
+      "הבחנה בין 'בערך' לתוצאה מובטחת",
+    ],
+    answerFormat: "mc",
+  };
 }
 
 export default Index;
