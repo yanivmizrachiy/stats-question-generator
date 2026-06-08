@@ -61,7 +61,9 @@ const Index = () => {
   const [showSolution, setShowSolution] = useState(false);
   const [worksheet, setWorksheet] = useState<GeneratedQuestion[]>([]);
   const [printMode, setPrintMode] = useState<"single" | "worksheet" | null>(null);
+  const [status, setStatus] = useState<StatusInfo | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   // initial example question (matches the inspiration: red = 1/10 of 600 -> 60)
   useEffect(() => {
