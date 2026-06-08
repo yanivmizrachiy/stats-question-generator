@@ -92,27 +92,71 @@ const Index = () => {
     }
   };
 
+  // Main button: copy the full question area as a real PNG image to clipboard.
+  const handleCopyImage = async () => {
+    if (!question || !captureRef.current) return;
+    toast.info("מכין תמונה…");
+    let blob: Blob;
+    try {
+      blob = await domToPNGBlob(captureRef.current, 3);
+    } catch (e: any) {
+      const msg = "יצירת התמונה נכשלה: " + (e?.message || "שגיאה לא ידועה");
+      toast.error(msg);
+      setStatus({ action: "העתק לדף עבודה (תמונה)", ok: false, output: "—", message: msg });
+      return;
+    }
+    const res = await copyImageToClipboard(blob);
+    if (res.ok) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+      // Fallback only as alternative — not reported as success.
+      downloadBlob(blob, `שאלה-${question.seed}.png`);
+    }
+    setStatus({
+      action: "העתק לדף עבודה (תמונה)",
+      ok: res.ok,
+      output: res.ok ? "PNG" : "—",
+      message: res.ok ? res.message : res.message + " הורדה הופעלה כחלופה.",
+    });
+  };
+
   const handleCopyRich = async () => {
     if (!question) return;
     const res = await copyRich(questionToHTML(question), questionToPlainText(question));
     res.ok ? toast.success(res.message) : toast.error(res.message);
+    setStatus({
+      action: "העתק כ-HTML",
+      ok: res.ok,
+      output: res.ok ? (res.rich ? "HTML" : "טקסט") : "—",
+      message: res.message,
+    });
   };
 
   const handleCopyText = async () => {
     if (!question) return;
     const res = await copyText(questionToPlainText(question));
     res.ok ? toast.success(res.message) : toast.error(res.message);
+    setStatus({
+      action: "העתק טקסט בלבד",
+      ok: res.ok,
+      output: res.ok ? "טקסט" : "—",
+      message: res.message,
+    });
   };
 
   const handlePNG = async () => {
-    if (!question) return;
+    if (!question || !captureRef.current) return;
     toast.info("מכין PNG…");
     try {
-      const blob = await elementToPNG(questionToHTML(question), 720);
+      const blob = await domToPNGBlob(captureRef.current, 3);
       downloadBlob(blob, `שאלה-${question.seed}.png`);
       toast.success("ה-PNG הורד בהצלחה.");
-    } catch (e) {
-      toast.error("הורדת ה-PNG נכשלה בדפדפן זה.");
+      setStatus({ action: "הורד PNG", ok: true, output: "PNG", message: "קובץ ה-PNG הורד בהצלחה." });
+    } catch (e: any) {
+      const msg = "הורדת ה-PNG נכשלה: " + (e?.message || "שגיאה לא ידועה");
+      toast.error(msg);
+      setStatus({ action: "הורד PNG", ok: false, output: "—", message: msg });
     }
   };
 
