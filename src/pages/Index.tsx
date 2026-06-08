@@ -28,12 +28,20 @@ import {
   copyRich,
   copyText,
   downloadBlob,
-  elementToPNG,
+  domToPNGBlob,
+  copyImageToClipboard,
   questionToHTML,
   questionToPlainText,
   worksheetToHTML,
   worksheetToPlainText,
 } from "@/lib/exporters";
+
+interface StatusInfo {
+  action: string;
+  ok: boolean;
+  output: "PNG" | "HTML" | "טקסט" | "הדפסה" | "—";
+  message: string;
+}
 
 const STORAGE_KEY = "stat-q-generator-settings-v1";
 
