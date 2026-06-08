@@ -13,6 +13,9 @@ import {
   ArrowUp,
   ArrowDown,
   ClipboardCopy,
+  Image,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,12 +31,20 @@ import {
   copyRich,
   copyText,
   downloadBlob,
-  elementToPNG,
+  domToPNGBlob,
+  copyImageToClipboard,
   questionToHTML,
   questionToPlainText,
   worksheetToHTML,
   worksheetToPlainText,
 } from "@/lib/exporters";
+
+interface StatusInfo {
+  action: string;
+  ok: boolean;
+  output: "PNG" | "HTML" | "טקסט" | "הדפסה" | "—";
+  message: string;
+}
 
 const STORAGE_KEY = "stat-q-generator-settings-v1";
 
@@ -53,7 +64,9 @@ const Index = () => {
   const [showSolution, setShowSolution] = useState(false);
   const [worksheet, setWorksheet] = useState<GeneratedQuestion[]>([]);
   const [printMode, setPrintMode] = useState<"single" | "worksheet" | null>(null);
+  const [status, setStatus] = useState<StatusInfo | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   // initial example question (matches the inspiration: red = 1/10 of 600 -> 60)
   useEffect(() => {
@@ -82,27 +95,71 @@ const Index = () => {
     }
   };
 
+  // Main button: copy the full question area as a real PNG image to clipboard.
+  const handleCopyImage = async () => {
+    if (!question || !captureRef.current) return;
+    toast.info("מכין תמונה…");
+    let blob: Blob;
+    try {
+      blob = await domToPNGBlob(captureRef.current, 3);
+    } catch (e: any) {
+      const msg = "יצירת התמונה נכשלה: " + (e?.message || "שגיאה לא ידועה");
+      toast.error(msg);
+      setStatus({ action: "העתק לדף עבודה (תמונה)", ok: false, output: "—", message: msg });
+      return;
+    }
+    const res = await copyImageToClipboard(blob);
+    if (res.ok) {
+      toast.success(res.message);
+    } else {
+      toast.error(res.message);
+      // Fallback only as alternative — not reported as success.
+      downloadBlob(blob, `שאלה-${question.seed}.png`);
+    }
+    setStatus({
+      action: "העתק לדף עבודה (תמונה)",
+      ok: res.ok,
+      output: res.ok ? "PNG" : "—",
+      message: res.ok ? res.message : res.message + " הורדה הופעלה כחלופה.",
+    });
+  };
+
   const handleCopyRich = async () => {
     if (!question) return;
     const res = await copyRich(questionToHTML(question), questionToPlainText(question));
     res.ok ? toast.success(res.message) : toast.error(res.message);
+    setStatus({
+      action: "העתק כ-HTML",
+      ok: res.ok,
+      output: res.ok ? (res.rich ? "HTML" : "טקסט") : "—",
+      message: res.message,
+    });
   };
 
   const handleCopyText = async () => {
     if (!question) return;
     const res = await copyText(questionToPlainText(question));
     res.ok ? toast.success(res.message) : toast.error(res.message);
+    setStatus({
+      action: "העתק טקסט בלבד",
+      ok: res.ok,
+      output: res.ok ? "טקסט" : "—",
+      message: res.message,
+    });
   };
 
   const handlePNG = async () => {
-    if (!question) return;
+    if (!question || !captureRef.current) return;
     toast.info("מכין PNG…");
     try {
-      const blob = await elementToPNG(questionToHTML(question), 720);
+      const blob = await domToPNGBlob(captureRef.current, 3);
       downloadBlob(blob, `שאלה-${question.seed}.png`);
       toast.success("ה-PNG הורד בהצלחה.");
-    } catch (e) {
-      toast.error("הורדת ה-PNG נכשלה בדפדפן זה.");
+      setStatus({ action: "הורד PNG", ok: true, output: "PNG", message: "קובץ ה-PNG הורד בהצלחה." });
+    } catch (e: any) {
+      const msg = "הורדת ה-PNG נכשלה: " + (e?.message || "שגיאה לא ידועה");
+      toast.error(msg);
+      setStatus({ action: "הורד PNG", ok: false, output: "—", message: msg });
     }
   };
 
@@ -112,11 +169,13 @@ const Index = () => {
       window.print();
       setPrintMode(null);
     }, 80);
+    setStatus({ action: "הדפס שאלה", ok: true, output: "הדפסה", message: "נפתח חלון הדפסה לשאלה בלבד." });
   };
 
   const handlePrintWorksheet = () => {
     if (!worksheet.length) {
       toast.error("דף העבודה ריק. הוסיפו שאלות תחילה.");
+      setStatus({ action: "הדפס דף עבודה", ok: false, output: "—", message: "דף העבודה ריק." });
       return;
     }
     setPrintMode("worksheet");
@@ -124,12 +183,14 @@ const Index = () => {
       window.print();
       setPrintMode(null);
     }, 80);
+    setStatus({ action: "הדפס דף עבודה", ok: true, output: "הדפסה", message: "נפתח חלון הדפסה לדף העבודה בלבד." });
   };
 
   const addToWorksheet = () => {
     if (!question) return;
     setWorksheet((w) => [...w, question]);
     toast.success("השאלה נוספה לדף העבודה.");
+    setStatus({ action: "הוסף לדף עבודה", ok: true, output: "—", message: "השאלה נוספה לדף העבודה." });
   };
 
   const removeFromWorksheet = (id: string) =>
@@ -191,7 +252,7 @@ const Index = () => {
           {/* Live preview */}
           <div className="no-print panel-card p-5 md:p-7" ref={printRef}>
             {question ? (
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto" ref={captureRef}>
                 <QuestionView question={question} />
               </div>
             ) : (
@@ -204,26 +265,51 @@ const Index = () => {
             <Button onClick={handleGenerate} className="bg-gradient-primary hover:opacity-90 shadow-soft">
               <Sparkles className="w-4 h-4 ml-1.5" /> צור שאלה חדשה
             </Button>
-            <Button onClick={handleCopyRich} variant="default">
-              <Copy className="w-4 h-4 ml-1.5" /> העתק לדף עבודה
+            <Button onClick={handleCopyImage} variant="default" disabled={!question}>
+              <Image className="w-4 h-4 ml-1.5" /> העתק לדף עבודה (תמונה)
             </Button>
-            <Button onClick={handleCopyText} variant="outline">
-              <ClipboardCopy className="w-4 h-4 ml-1.5" /> העתק טקסט בלבד
-            </Button>
-            <Button onClick={handlePNG} variant="outline">
+            <Button onClick={handlePNG} variant="outline" disabled={!question}>
               <Download className="w-4 h-4 ml-1.5" /> הורד PNG
             </Button>
-            <Button onClick={handlePrintSingle} variant="outline">
+            <Button onClick={handleCopyRich} variant="outline" disabled={!question}>
+              <Copy className="w-4 h-4 ml-1.5" /> העתק כ-HTML
+            </Button>
+            <Button onClick={handleCopyText} variant="outline" disabled={!question}>
+              <ClipboardCopy className="w-4 h-4 ml-1.5" /> העתק טקסט בלבד
+            </Button>
+            <Button onClick={handlePrintSingle} variant="outline" disabled={!question}>
               <Printer className="w-4 h-4 ml-1.5" /> הדפס
             </Button>
-            <Button onClick={() => setShowSolution((s) => !s)} variant="outline">
+            <Button onClick={() => setShowSolution((s) => !s)} variant="outline" disabled={!question}>
               {showSolution ? <EyeOff className="w-4 h-4 ml-1.5" /> : <Eye className="w-4 h-4 ml-1.5" />}
               {showSolution ? "הסתר פתרון" : "הצג פתרון למורה"}
             </Button>
-            <Button onClick={addToWorksheet} variant="secondary">
+            <Button onClick={addToWorksheet} variant="secondary" disabled={!question}>
               <Plus className="w-4 h-4 ml-1.5" /> הוסף לדף עבודה
             </Button>
           </div>
+
+          {/* Status / truth panel */}
+          {status && (
+            <div
+              className={`no-print rounded-xl border p-4 text-sm ${
+                status.ok
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                  : "border-red-300 bg-red-50 text-red-900"
+              }`}
+            >
+              <div className="font-bold mb-1 flex items-center gap-2">
+                {status.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                בדיקת אמת — הפעולה האחרונה
+              </div>
+              <ul className="space-y-0.5">
+                <li>פעולה: {status.action}</li>
+                <li>הצליחה באמת: {status.ok ? "כן ✓" : "לא ✗"}</li>
+                <li>סוג פלט: {status.output}</li>
+                <li>הודעה: {status.message}</li>
+              </ul>
+            </div>
+          )}
 
           {/* Solution */}
           {question && showSolution && (

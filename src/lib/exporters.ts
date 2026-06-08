@@ -194,3 +194,60 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ---- Real DOM -> PNG capture (includes SVG charts, colors, options, frame) ----
+import { toBlob } from "html-to-image";
+
+export async function domToPNGBlob(el: HTMLElement, scale = 3): Promise<Blob> {
+  const blob = await toBlob(el, {
+    pixelRatio: scale,
+    backgroundColor: "#ffffff",
+    cacheBust: true,
+    style: { margin: "0" },
+  });
+  if (!blob) throw new Error("המרת התמונה נכשלה");
+  return blob;
+}
+
+export interface ImageCopyResult {
+  ok: boolean;
+  message: string;
+  output: "PNG" | "none";
+}
+
+// Copy a real PNG image to the clipboard. Only reports success if the image
+// was actually written to the clipboard.
+export async function copyImageToClipboard(blob: Blob): Promise<ImageCopyResult> {
+  const supported =
+    typeof navigator !== "undefined" &&
+    !!navigator.clipboard &&
+    typeof (window as any).ClipboardItem !== "undefined" &&
+    typeof navigator.clipboard.write === "function";
+
+  if (!supported) {
+    return {
+      ok: false,
+      output: "none",
+      message: "הדפדפן לא מאפשר העתקת תמונה ישירה. השתמש בכפתור הורד PNG.",
+    };
+  }
+
+  try {
+    const item = new (window as any).ClipboardItem({ "image/png": blob });
+    await navigator.clipboard.write([item]);
+    return {
+      ok: true,
+      output: "PNG",
+      message: "השאלה הועתקה כתמונה. אפשר להדביק בוורד, קנבה או Google Docs.",
+    };
+  } catch (e: any) {
+    return {
+      ok: false,
+      output: "none",
+      message:
+        "העתקת התמונה ללוח נכשלה: " +
+        (e?.message || "שגיאה לא ידועה") +
+        ". השתמש בכפתור הורד PNG.",
+    };
+  }
+}
