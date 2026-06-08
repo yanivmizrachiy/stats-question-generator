@@ -203,7 +203,7 @@ const Index = () => {
         {/* Preview + actions */}
         <section className="space-y-5">
           {/* Live preview */}
-          <div className="panel-card p-5 md:p-7 print-area" ref={printRef}>
+          <div className="no-print panel-card p-5 md:p-7" ref={printRef}>
             {question ? (
               <div className="max-w-2xl mx-auto">
                 <QuestionView question={question} />
